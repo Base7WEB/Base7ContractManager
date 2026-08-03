@@ -1,6 +1,6 @@
-import type { DocumentContext } from "../context";
-import { contentPage, docFooter, docHeader, metaTable, sectionTitle, sigGrid } from "../layout";
-import { escapeHtml } from "../format";
+import type { DocumentContext } from "../context.js";
+import { contentPage, docFooter, docHeader, metaTable, sectionTitle, sigGrid } from "../layout.js";
+import { escapeHtml } from "../format.js";
 
 export function termoEntregaTemplate(ctx: DocumentContext, current: number, total: number): string {
   const { client, product, contract, care } = ctx;

@@ -1,4 +1,4 @@
-import type { ClientKind } from "../types/domain";
+import type { ClientKind } from "../types/domain.js";
 
 export function formatDocument(document: string, kind: ClientKind): string {
   const digits = document.replace(/\D/g, "");

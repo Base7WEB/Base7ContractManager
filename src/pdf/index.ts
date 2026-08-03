@@ -1,17 +1,17 @@
-import type { DocumentContext } from "./context";
-import type { DocumentType } from "../types/domain";
-import { htmlDocument } from "./layout";
-import { coverTemplate } from "./templates/cover";
-import { overviewTemplate } from "./templates/overview";
-import { contratoTemplate } from "./templates/contrato";
-import { termoEntregaTemplate } from "./templates/termoEntrega";
-import { manualTemplate } from "./templates/manual";
-import { docTecnicaTemplate } from "./templates/docTecnica";
-import { acessosTemplate } from "./templates/acessos";
-import { backupTemplate } from "./templates/backup";
-import { checklistTemplate } from "./templates/checklist";
+import type { DocumentContext } from "./context.js";
+import type { DocumentType } from "../types/domain.js";
+import { htmlDocument } from "./layout.js";
+import { coverTemplate } from "./templates/cover.js";
+import { overviewTemplate } from "./templates/overview.js";
+import { contratoTemplate } from "./templates/contrato.js";
+import { termoEntregaTemplate } from "./templates/termoEntrega.js";
+import { manualTemplate } from "./templates/manual.js";
+import { docTecnicaTemplate } from "./templates/docTecnica.js";
+import { acessosTemplate } from "./templates/acessos.js";
+import { backupTemplate } from "./templates/backup.js";
+import { checklistTemplate } from "./templates/checklist.js";
 
-export { buildDocumentContext, type DocumentContext } from "./context";
+export { buildDocumentContext, type DocumentContext } from "./context.js";
 
 /**
  * Pacote de documentação completo: capa + visão geral + os 6 documentos + checklist,

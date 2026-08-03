@@ -6,10 +6,10 @@
  */
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
-import type { Database } from "../../src/types/db";
-import type { DocumentType } from "../../src/types/domain";
-import { buildDocumentContext, renderDocumentHtml } from "../../src/pdf";
-import { htmlToPdfBuffer } from "../../src/pdf/render-node";
+import type { Database } from "../../src/types/db.js";
+import type { DocumentType } from "../../src/types/domain.js";
+import { buildDocumentContext, renderDocumentHtml } from "../../src/pdf/index.js";
+import { htmlToPdfBuffer } from "../../src/pdf/render-node.js";
 
 const DOCUMENT_TYPES: DocumentType[] = [
   "contrato",

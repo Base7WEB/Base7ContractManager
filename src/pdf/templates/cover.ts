@@ -1,6 +1,6 @@
-import type { DocumentContext } from "../context";
-import { LOGO_DATA_URI } from "../layout";
-import { escapeHtml } from "../format";
+import type { DocumentContext } from "../context.js";
+import { LOGO_DATA_URI } from "../layout.js";
+import { escapeHtml } from "../format.js";
 
 export function coverTemplate(ctx: DocumentContext): string {
   const { client, product, company } = ctx;

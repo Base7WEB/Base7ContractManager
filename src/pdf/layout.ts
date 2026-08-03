@@ -1,5 +1,5 @@
-import { LOGO_DATA_URI } from "./logo-base64";
-import { escapeHtml } from "./format";
+import { LOGO_DATA_URI } from "./logo-base64.js";
+import { escapeHtml } from "./format.js";
 
 /**
  * CSS-base do kit documental, portado do protótipo já validado manualmente nesta mesma linha

@@ -1,6 +1,6 @@
-import type { Database } from "../types/db";
-import type { ClientKind, ContractStatus } from "../types/domain";
-import { addDaysISO, formatAddress, formatCurrencyBRL, formatDateBR, formatDocument } from "./format";
+import type { Database } from "../types/db.js";
+import type { ClientKind, ContractStatus } from "../types/domain.js";
+import { addDaysISO, formatAddress, formatCurrencyBRL, formatDateBR, formatDocument } from "./format.js";
 
 type ContractRow = Database["public"]["Tables"]["contracts"]["Row"];
 type ClientRow = Database["public"]["Tables"]["clients"]["Row"];

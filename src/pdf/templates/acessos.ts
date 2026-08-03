@@ -1,6 +1,6 @@
-import type { DocumentContext } from "../context";
-import { callout, contentPage, docFooter, docHeader, docTable, metaTable, sectionTitle } from "../layout";
-import { escapeHtml } from "../format";
+import type { DocumentContext } from "../context.js";
+import { callout, contentPage, docFooter, docHeader, docTable, metaTable, sectionTitle } from "../layout.js";
+import { escapeHtml } from "../format.js";
 
 export function acessosTemplate(ctx: DocumentContext, current: number, total: number): string {
   const { client, product, contract, care, company } = ctx;

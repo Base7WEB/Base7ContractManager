@@ -1,6 +1,6 @@
-import type { DocumentContext } from "../context";
-import { contentPage, docFooter, docHeader, docTable, metaTable, sectionTitle } from "../layout";
-import { escapeHtml } from "../format";
+import type { DocumentContext } from "../context.js";
+import { contentPage, docFooter, docHeader, docTable, metaTable, sectionTitle } from "../layout.js";
+import { escapeHtml } from "../format.js";
 
 export function docTecnicaTemplate(ctx: DocumentContext, current: number, total: number): string {
   const { product, contract } = ctx;

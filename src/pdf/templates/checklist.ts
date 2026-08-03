@@ -1,6 +1,6 @@
-import type { DocumentContext } from "../context";
-import { LOGO_DATA_URI, callout, checklist, contentPage, docHeader, sectionTitle } from "../layout";
-import { escapeHtml } from "../format";
+import type { DocumentContext } from "../context.js";
+import { LOGO_DATA_URI, callout, checklist, contentPage, docHeader, sectionTitle } from "../layout.js";
+import { escapeHtml } from "../format.js";
 
 export function checklistTemplate(ctx: DocumentContext): string {
   const { client, care, product } = ctx;
