@@ -1,0 +1,130 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Identidade visual BASE7 CONTRACT MANAGER.
+  Azul de marca (hsl 205 100% 50% ≈ #0096FE) foi amostrado diretamente do logo real
+  (public/imagem/logo-base7web.png) — é a única referência de marca corporativa que existe,
+  já que o repo irmão (base7web-system-barber) usa uma paleta temática por cliente, não a
+  identidade da Base7 Web.
+*/
+
+@layer base {
+  :root {
+    --background: 210 25% 98%;
+    --foreground: 222 35% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 35% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 35% 11%;
+
+    --primary: 205 100% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 212 24% 95%;
+    --secondary-foreground: 222 30% 16%;
+
+    --muted: 212 20% 95%;
+    --muted-foreground: 220 12% 43%;
+
+    --accent: 205 88% 95%;
+    --accent-foreground: 205 100% 30%;
+
+    --destructive: 358 70% 48%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 60% 32%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 42%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 214 18% 88%;
+    --input: 214 18% 88%;
+    --ring: 205 100% 50%;
+
+    --radius: 0.65rem;
+
+    --sidebar-background: 222 47% 9%;
+    --sidebar-foreground: 212 24% 88%;
+    --sidebar-primary: 205 100% 58%;
+    --sidebar-primary-foreground: 222 47% 9%;
+    --sidebar-accent: 222 35% 15%;
+    --sidebar-accent-foreground: 210 25% 92%;
+    --sidebar-border: 222 30% 17%;
+    --sidebar-ring: 205 100% 58%;
+  }
+
+  .dark {
+    --background: 222 45% 7%;
+    --foreground: 210 25% 92%;
+
+    --card: 222 40% 10%;
+    --card-foreground: 210 25% 92%;
+
+    --popover: 222 40% 10%;
+    --popover-foreground: 210 25% 92%;
+
+    --primary: 205 100% 58%;
+    --primary-foreground: 222 45% 8%;
+
+    --secondary: 222 30% 15%;
+    --secondary-foreground: 210 25% 90%;
+
+    --muted: 222 30% 15%;
+    --muted-foreground: 216 14% 65%;
+
+    --accent: 222 35% 18%;
+    --accent-foreground: 205 90% 75%;
+
+    --destructive: 358 65% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 50% 45%;
+    --success-foreground: 222 45% 8%;
+
+    --warning: 38 85% 55%;
+    --warning-foreground: 222 45% 8%;
+
+    --border: 222 25% 18%;
+    --input: 222 25% 18%;
+    --ring: 205 100% 58%;
+
+    --sidebar-background: 222 50% 6%;
+    --sidebar-foreground: 212 24% 88%;
+    --sidebar-primary: 205 100% 58%;
+    --sidebar-primary-foreground: 222 47% 9%;
+    --sidebar-accent: 222 35% 13%;
+    --sidebar-accent-foreground: 210 25% 92%;
+    --sidebar-border: 222 30% 15%;
+    --sidebar-ring: 205 100% 58%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+
+  ::selection {
+    @apply bg-primary/20;
+  }
+}
+
+@layer utilities {
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
