@@ -1,5 +1,53 @@
-import { ComingSoon } from "@/components/shared/ComingSoon";
+import { Link } from "react-router-dom";
+import { Boxes } from "lucide-react";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useProductsQuery } from "@/hooks/useProducts";
 
 export default function ProdutosSistemas() {
-  return <ComingSoon title="Sistemas" description="Catálogo de produtos (BASE7 System Barber e futuros) chega na Fase 6." />;
+  const { data: products, isLoading } = useProductsQuery();
+
+  return (
+    <>
+      <PageHeader
+        title="Sistemas"
+        description="Produtos vendidos pela Base7 Web. Cadastrar um novo sistema aqui o disponibiliza no fluxo de novo contrato."
+      />
+      <div className="p-6 md:p-8">
+        {isLoading ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-40 w-full" />
+            ))}
+          </div>
+        ) : !products || products.length === 0 ? (
+          <EmptyState icon={Boxes} title="Nenhum sistema cadastrado" description="Rode o script de seed para popular o BASE7 System Barber." />
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {products.map((product) => (
+              <Link key={product.id} to={`/produtos/sistemas/${product.id}`}>
+                <Card className="h-full transition-colors hover:border-primary/40 hover:shadow-sm">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <CardTitle className="text-base">{product.name}</CardTitle>
+                      <Badge variant={product.status === "active" ? "default" : "secondary"} className="shrink-0">
+                        {product.status === "active" ? "Ativo" : "Inativo"}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <p className="line-clamp-2 text-sm text-muted-foreground">{product.description}</p>
+                    <p className="text-xs text-muted-foreground">Versão padrão: {product.default_version}</p>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
 }
