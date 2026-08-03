@@ -31,3 +31,12 @@ export async function generateDocument(contractId: string, documentType: Documen
   }
   return payload as GenerateDocumentResult;
 }
+
+/** Gera uma URL assinada de curta duração para baixar uma versão já existente do Storage. */
+export async function getSignedDownloadUrl(storagePath: string): Promise<string> {
+  const { data, error } = await supabase.storage.from("documents").createSignedUrl(storagePath, 60 * 5);
+  if (error || !data) {
+    throw new Error(error?.message ?? "Falha ao gerar link de download.");
+  }
+  return data.signedUrl;
+}

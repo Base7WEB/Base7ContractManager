@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { DemoBadge } from "@/components/shared/DemoBadge";
 import { ClientForm } from "@/components/clients/ClientForm";
 import { useClientQuery, useCreateClientMutation, useUpdateClientMutation } from "@/hooks/useClients";
-import type { ClientFormValues } from "@/lib/schemas/client";
+import { clientFormToInsert, type ClientFormValues } from "@/lib/schemas/client";
 
 export default function ClienteForm() {
   const { clientId } = useParams();
@@ -39,28 +39,14 @@ export default function ClienteForm() {
     : undefined;
 
   async function handleSubmit(values: ClientFormValues) {
-    const payload = {
-      ...values,
-      address_street: values.address_street || null,
-      address_number: values.address_number || null,
-      address_complement: values.address_complement || null,
-      address_neighborhood: values.address_neighborhood || null,
-      address_city: values.address_city || null,
-      address_state: values.address_state || null,
-      address_zip: values.address_zip || null,
-      contact_role: values.contact_role || null,
-      contact_document: values.contact_document || null,
-      email: values.email || null,
-      phone: values.phone || null,
-      notes: values.notes || null,
-    };
+    const payload = clientFormToInsert(values);
 
     try {
       if (isEditing && clientId) {
         await updateMutation.mutateAsync({ id: clientId, ...payload });
         toast.success("Cliente atualizado.");
       } else {
-        await createMutation.mutateAsync({ ...payload, is_demo: false });
+        await createMutation.mutateAsync(payload);
         toast.success("Cliente cadastrado.");
       }
       navigate("/clientes");

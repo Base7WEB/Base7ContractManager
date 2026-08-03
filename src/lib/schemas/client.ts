@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { ClientInsert } from "@/hooks/useClients";
 
 export const clientFormSchema = z
   .object({
@@ -50,3 +51,27 @@ export const clientFormDefaults: Partial<ClientFormValues> = {
   phone: "",
   notes: "",
 };
+
+/** Converte o formulário (strings vazias) para o formato do banco (null) antes de salvar. */
+export function clientFormToInsert(values: ClientFormValues, isDemo = false): ClientInsert {
+  return {
+    kind: values.kind,
+    trade_name: values.trade_name,
+    legal_name: values.legal_name,
+    document: values.document,
+    address_street: values.address_street || null,
+    address_number: values.address_number || null,
+    address_complement: values.address_complement || null,
+    address_neighborhood: values.address_neighborhood || null,
+    address_city: values.address_city || null,
+    address_state: values.address_state || null,
+    address_zip: values.address_zip || null,
+    contact_name: values.contact_name,
+    contact_role: values.contact_role || null,
+    contact_document: values.contact_document || null,
+    email: values.email || null,
+    phone: values.phone || null,
+    notes: values.notes || null,
+    is_demo: isDemo,
+  };
+}
