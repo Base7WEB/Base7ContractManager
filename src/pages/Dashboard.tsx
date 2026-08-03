@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { FileText, FolderOpen, Heart, Plus, UserPlus, Users } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { DemoBadge } from "@/components/shared/DemoBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +11,7 @@ import { useClientsQuery } from "@/hooks/useClients";
 import { useContractsQuery } from "@/hooks/useContracts";
 import { useAllDocumentVersionsQuery } from "@/hooks/useGeneratedDocuments";
 import { CONTRACT_STATUS_LABEL } from "@/types/domain";
-import { formatCurrencyBRL, formatDateBR } from "@/pdf/format";
+import { formatCurrencyBRL } from "@/pdf/format";
 
 export default function Dashboard() {
   const { data: clients, isLoading: loadingClients } = useClientsQuery();
@@ -81,14 +80,14 @@ export default function Dashboard() {
                   }
                 />
               ) : (
+                <>
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Contrato</TableHead>
                       <TableHead>Cliente</TableHead>
                       <TableHead>Valor</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Data</TableHead>
+                      <TableHead className="text-right">Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -99,23 +98,22 @@ export default function Dashboard() {
                             {contract.number}
                           </Link>
                         </TableCell>
-                        <TableCell>
-                          <span className="inline-flex items-center gap-2">
-                            {contract.client.trade_name}
-                            {contract.is_demo && <DemoBadge />}
-                          </span>
+                        <TableCell className="max-w-[160px] truncate" title={contract.client.trade_name}>
+                          {contract.client.trade_name}
+                          {contract.is_demo && <span className="ml-1.5 text-amber-600 dark:text-amber-400">*</span>}
                         </TableCell>
                         <TableCell className="tabular-nums">{formatCurrencyBRL(contract.commercial.value)}</TableCell>
-                        <TableCell>
+                        <TableCell className="text-right">
                           <Badge variant="outline">{CONTRACT_STATUS_LABEL[contract.status]}</Badge>
-                        </TableCell>
-                        <TableCell className="tabular-nums text-muted-foreground">
-                          {formatDateBR(contract.created_at.slice(0, 10))}
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
+                {recentContracts.some((c) => c.is_demo) && (
+                  <p className="mt-2 text-xs text-muted-foreground">* dados fictícios — demonstração</p>
+                )}
+                </>
               )}
             </CardContent>
           </Card>
