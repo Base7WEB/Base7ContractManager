@@ -35,13 +35,18 @@ export default function ContratoDetail() {
 
   async function handleGenerate(type: DocumentType) {
     if (!contractId) return;
+    // Abre a aba de forma síncrona, dentro do gesto de clique do usuário — se esperarmos a
+    // função assíncrona terminar antes de chamar window.open, o navegador trata como popup
+    // não solicitado e bloqueia silenciosamente.
+    const pendingTab = window.open("", "_blank");
     setGenerating(type);
     try {
       const result = await generateDocument(contractId, type);
       toast.success(`${DOCUMENT_TYPE_LABEL[type]} gerado (versão ${result.version}).`);
       invalidateContractDocuments(queryClient, contractId);
-      window.open(result.url, "_blank");
+      if (pendingTab) pendingTab.location.href = result.url;
     } catch (err) {
+      pendingTab?.close();
       toast.error(err instanceof Error ? err.message : "Falha ao gerar documento.");
     } finally {
       setGenerating(null);
@@ -49,10 +54,12 @@ export default function ContratoDetail() {
   }
 
   async function handleDownload(storagePath: string) {
+    const pendingTab = window.open("", "_blank");
     try {
       const url = await getSignedDownloadUrl(storagePath);
-      window.open(url, "_blank");
+      if (pendingTab) pendingTab.location.href = url;
     } catch (err) {
+      pendingTab?.close();
       toast.error(err instanceof Error ? err.message : "Falha ao gerar link de download.");
     }
   }

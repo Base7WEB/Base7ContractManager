@@ -14,10 +14,12 @@ export default function Documentacoes() {
   const { data: rows, isLoading } = useAllDocumentVersionsQuery();
 
   async function handleDownload(storagePath: string) {
+    const pendingTab = window.open("", "_blank");
     try {
       const url = await getSignedDownloadUrl(storagePath);
-      window.open(url, "_blank");
+      if (pendingTab) pendingTab.location.href = url;
     } catch (err) {
+      pendingTab?.close();
       toast.error(err instanceof Error ? err.message : "Falha ao gerar link de download.");
     }
   }
