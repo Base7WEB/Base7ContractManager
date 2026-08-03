@@ -56,13 +56,34 @@ src/
 supabase/
   migrations/     schema, em ordem (SQL puro)
 scripts/
-  seed.ts         popula produto BASE7 System Barber, BASE7 CARE, empresa e dados demo
-  render-preview.ts  renderiza os templates de PDF localmente, sem depender do serverless
+  seed.ts               popula produto BASE7 System Barber, BASE7 CARE, empresa e dados demo
+  render-preview.ts     renderiza os templates de PDF localmente (dados mock), sem depender do serverless
+  test-generate.ts      idem, mas lendo um contrato real do banco (útil para depurar o pipeline completo)
 api/
   documents/generate.ts   Vercel Serverless Function que gera o PDF final
 ```
 
+## Deploy
+
+Produção: [base7-contract-manager.vercel.app](https://base7-contract-manager.vercel.app), a partir
+do repositório [Base7WEB/Base7ContractManager](https://github.com/Base7WEB/Base7ContractManager)
+(branch `main`, deploy automático a cada push).
+
+Variáveis de ambiente necessárias no projeto Vercel (Settings → Environment Variables):
+`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (a última é usada
+somente pela função `api/documents/generate.ts`; sem ela, o app funciona normalmente exceto pela
+geração de PDF).
+
 ## Status
 
-Ver plano de implementação por fases no histórico do projeto. Fase 1 (scaffold) concluída;
-demais fases em andamento.
+MVP completo — fluxo de ponta a ponta funcionando em produção: login → dashboard → clientes →
+novo contrato (wizard) → geração de documentação (pacote completo ou por documento) → PDF real
+baixado, versionado e listado no histórico. Validado com dados reais no Supabase de produção.
+
+Pendências conhecidas / próximos passos:
+- CNPJ da Base7 Web ainda não preenchido em Configurações → Empresa (aparece como
+  "[a inserir]" nos contratos até ser cadastrado).
+- `/configuracoes/templates` é um placeholder — fora do escopo do MVP.
+- Sem tela de exclusão de clientes/contratos (CRUD é create/read/update por decisão de escopo).
+- Bundle do frontend está acima de 500kB (aviso do Vite) — candidato a code-splitting por rota
+  numa próxima iteração, não afeta funcionamento.
