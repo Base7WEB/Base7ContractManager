@@ -15,9 +15,9 @@ export const BASE_CSS = /* css */ `
 
   .page{width:210mm;min-height:297mm;position:relative;background:#fff;page-break-after:always;}
   .page:last-of-type{page-break-after:auto;}
-  .page-inner{padding:16mm 16mm 14mm;min-height:297mm;box-sizing:border-box;display:flex;flex-direction:column;}
+  .page-inner{padding:15mm 16mm 12mm;min-height:297mm;box-sizing:border-box;display:flex;flex-direction:column;}
 
-  .doc-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8mm;padding-bottom:4mm;border-bottom:0.5pt solid #E1E5EC;margin-bottom:5mm;}
+  .doc-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8mm;padding-bottom:3.4mm;border-bottom:0.5pt solid #E1E5EC;margin-bottom:4mm;}
   .doc-header img{height:7.4mm;display:block;}
   .doc-header .titles{text-align:right;}
   .doc-header .titles .t1{font-size:8.6pt;font-weight:700;letter-spacing:.02em;color:#0A6DC2;text-transform:uppercase;}
@@ -31,14 +31,14 @@ export const BASE_CSS = /* css */ `
   .sec-title h2{font-size:12pt;margin:0;font-weight:700;color:#12141C;}
 
   .sec-block{margin-bottom:0;}
-  .sec-block h3{font-size:10pt;font-weight:700;margin:3.6mm 0 1.4mm;color:#12141C;}
-  .sec-block p{font-size:9.1pt;color:#333A47;line-height:1.42;margin:0 0 1.4mm;}
-  .sec-block ul{margin:0 0 1.4mm;padding-left:4mm;}
-  .sec-block li{font-size:9.1pt;color:#333A47;line-height:1.38;margin-bottom:1mm;}
+  .sec-block h3{font-size:9.8pt;font-weight:700;margin:3mm 0 1.2mm;color:#12141C;}
+  .sec-block p{font-size:8.9pt;color:#333A47;line-height:1.36;margin:0 0 1.2mm;}
+  .sec-block ul{margin:0 0 1.2mm;padding-left:4mm;}
+  .sec-block li{font-size:8.9pt;color:#333A47;line-height:1.32;margin-bottom:.8mm;}
   .sec-block b{color:#12141C;}
 
-  .meta-table{width:100%;border-collapse:collapse;margin:0 0 3.6mm;font-size:8.8pt;}
-  .meta-table td{padding:2mm 3mm;border:0.4pt solid #E1E5EC;}
+  .meta-table{width:100%;border-collapse:collapse;margin:0 0 3mm;font-size:8.6pt;}
+  .meta-table td{padding:1.7mm 3mm;border:0.4pt solid #E1E5EC;}
   .meta-table td.k{width:34%;font-weight:700;color:#12141C;background:#F5F7FA;}
   .meta-table td.v{color:#333A47;}
 

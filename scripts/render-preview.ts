@@ -6,8 +6,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import puppeteer from "puppeteer-core";
 import { renderPackageHtml, type DocumentContext } from "../src/pdf";
+import { htmlToPdfBuffer } from "../src/pdf/render-node";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -108,33 +108,15 @@ const ctx: DocumentContext = {
   generated_at_formatted: "25/08/2026",
 };
 
-const CHROME_CANDIDATES = [
-  "C:/Program Files/Google/Chrome/Application/chrome.exe",
-  "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
-  "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
-  "/usr/bin/google-chrome",
-  "/usr/bin/chromium-browser",
-];
-
 async function main() {
-  const executablePath = CHROME_CANDIDATES.find((p) => fs.existsSync(p));
-  if (!executablePath) {
-    console.error("Nenhum Chrome/Edge encontrado nos caminhos padrão. Ajuste CHROME_CANDIDATES em scripts/render-preview.ts.");
-    process.exit(1);
-  }
-
   const html = renderPackageHtml(ctx);
   const outDir = path.resolve(__dirname, "output");
   fs.mkdirSync(outDir, { recursive: true });
-  const htmlPath = path.join(outDir, "preview.html");
-  fs.writeFileSync(htmlPath, html, "utf-8");
+  fs.writeFileSync(path.join(outDir, "preview.html"), html, "utf-8");
 
-  const browser = await puppeteer.launch({ executablePath, headless: true });
-  const page = await browser.newPage();
-  await page.goto(`file://${htmlPath}`, { waitUntil: "networkidle0" });
+  const pdfBuffer = await htmlToPdfBuffer(html);
   const pdfPath = path.join(outDir, "preview.pdf");
-  await page.pdf({ path: pdfPath, format: "A4", printBackground: true, preferCSSPageSize: true });
-  await browser.close();
+  fs.writeFileSync(pdfPath, pdfBuffer);
 
   console.log(`PDF gerado em ${pdfPath}`);
 }
