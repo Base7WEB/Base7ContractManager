@@ -4,6 +4,7 @@ import {
   Users,
   Boxes,
   Heart,
+  Briefcase,
   FileText,
   FolderOpen,
   Building2,
@@ -63,6 +64,10 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "Sistemas", to: "/produtos/sistemas", icon: Boxes },
       { label: "BASE7 CARE", to: "/produtos/base7-care", icon: Heart },
     ],
+  },
+  {
+    label: "Serviços",
+    items: [{ label: "Serviços", to: "/servicos", icon: Briefcase }],
   },
   {
     label: "Documentos",

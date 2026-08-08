@@ -57,7 +57,7 @@ export default function ContratosList() {
                 <TableRow>
                   <TableHead>Nº</TableHead>
                   <TableHead>Cliente</TableHead>
-                  <TableHead>Sistema</TableHead>
+                  <TableHead>Sistema/Serviço</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead>CARE</TableHead>
                   <TableHead>Status</TableHead>
@@ -78,7 +78,9 @@ export default function ContratosList() {
                         {contract.is_demo && <DemoBadge />}
                       </span>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{contract.product.name}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {contract.contract_kind === "sistema" ? contract.product?.name : contract.service?.name}
+                    </TableCell>
                     <TableCell className="tabular-nums">{formatCurrencyBRL(contract.commercial.value)}</TableCell>
                     <TableCell className="text-muted-foreground">{contract.care ? "Ativo" : "—"}</TableCell>
                     <TableCell>

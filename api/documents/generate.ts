@@ -3,12 +3,17 @@
  * runtime Edge). Recebe { contract_id, document_type }, monta o DocumentContext a partir do
  * snapshot congelado do contrato (criando o snapshot na primeira geração), renderiza o PDF via
  * Chromium headless, sobe pro Storage e grava o histórico versionado.
+ *
+ * Suporta dois "mundos" mutuamente exclusivos por contract.contract_kind: "sistema" (produto
+ * licenciado, pacote de até 10 páginas) e "servico" (pacote de preço fechado, contrato único e
+ * enxuto). O branch de snapshot é se/senão, nunca dois "if"s sequenciais — um contrato de
+ * serviço tem product_id null, então tentar buscar produto por ele sempre falharia.
  */
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../../src/types/db.js";
 import type { DocumentType } from "../../src/types/domain.js";
-import { buildDocumentContext, renderDocumentHtml } from "../../src/pdf/index.js";
+import { buildDocumentContext, buildServiceDocumentContext, renderDocumentHtml, renderServiceContractHtml } from "../../src/pdf/index.js";
 import { htmlToPdfBuffer } from "../../src/pdf/render-node.js";
 
 const DOCUMENT_TYPES: DocumentType[] = [
@@ -20,7 +25,19 @@ const DOCUMENT_TYPES: DocumentType[] = [
   "backup",
   "checklist",
   "pacote_completo",
+  "contrato_servico",
 ];
+
+const SISTEMA_DOCUMENT_TYPES = new Set<DocumentType>([
+  "contrato",
+  "termo_entrega",
+  "manual",
+  "doc_tecnica",
+  "acessos",
+  "backup",
+  "checklist",
+  "pacote_completo",
+]);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
@@ -64,6 +81,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(404).json({ error: "Contrato não encontrado." });
   }
 
+  const isServiceContract = contract.contract_kind === "servico";
+  const documentIsForSistema = SISTEMA_DOCUMENT_TYPES.has(document_type);
+  if (isServiceContract === documentIsForSistema) {
+    return res.status(400).json({
+      error: `document_type "${document_type}" não é compatível com um contrato do tipo "${contract.contract_kind}".`,
+    });
+  }
+
   const { data: client, error: clientError } = await admin
     .from("clients")
     .select("*")
@@ -81,15 +106,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .maybeSingle();
 
   if (!snapshot) {
-    const { data: product, error: productError } = await admin
-      .from("products")
-      .select("*")
-      .eq("id", contract.product_id)
-      .single();
-    if (productError || !product) {
-      return res.status(404).json({ error: "Produto do contrato não encontrado." });
-    }
-
     const { data: company, error: companyError } = await admin
       .from("company_settings")
       .select("*")
@@ -99,49 +115,119 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: "Configurações da empresa (Base7 Web) não encontradas." });
     }
 
-    const { data: inserted, error: insertError } = await admin
-      .from("contract_snapshots")
-      .insert({
-        contract_id,
-        product_snapshot: {
-          slug: product.slug,
-          name: product.name,
-          commercial_name: product.commercial_name,
-          description: product.description,
-          default_version: product.default_version,
-          scope: product.scope,
-          license: product.license,
-          warranty: product.warranty,
-          tech_docs: product.tech_docs,
-          backup_policy: product.backup_policy,
-        },
-        company_snapshot: {
-          name: company.name,
-          legal_name: company.legal_name,
-          cnpj: company.cnpj,
-          email: company.email,
-          phone: company.phone,
-          address_street: company.address_street,
-          address_number: company.address_number,
-          address_complement: company.address_complement,
-          address_neighborhood: company.address_neighborhood,
-          address_city: company.address_city,
-          address_state: company.address_state,
-          address_zip: company.address_zip,
-          logo_url: company.logo_url,
-        },
-      })
-      .select()
-      .single();
+    const companySnapshot = {
+      name: company.name,
+      legal_name: company.legal_name,
+      cnpj: company.cnpj,
+      email: company.email,
+      phone: company.phone,
+      address_street: company.address_street,
+      address_number: company.address_number,
+      address_complement: company.address_complement,
+      address_neighborhood: company.address_neighborhood,
+      address_city: company.address_city,
+      address_state: company.address_state,
+      address_zip: company.address_zip,
+      logo_url: company.logo_url,
+    };
 
-    if (insertError || !inserted) {
-      return res.status(500).json({ error: "Falha ao congelar o snapshot do contrato." });
+    if (isServiceContract) {
+      if (!contract.service_id) {
+        return res.status(400).json({ error: "Contrato de serviço sem service_id." });
+      }
+      const { data: service, error: serviceError } = await admin
+        .from("services")
+        .select("*")
+        .eq("id", contract.service_id)
+        .single();
+      if (serviceError || !service) {
+        return res.status(404).json({ error: "Serviço do contrato não encontrado." });
+      }
+
+      const { data: inserted, error: insertError } = await admin
+        .from("contract_snapshots")
+        .insert({
+          contract_id,
+          product_snapshot: null,
+          service_snapshot: {
+            slug: service.slug,
+            name: service.name,
+            badge: service.badge,
+            tagline: service.tagline,
+            category: service.category,
+            price: service.price,
+            price_prefix: service.price_prefix,
+            price_period: service.price_period,
+            delivery_text: service.delivery_text,
+            items: service.items,
+            scope: service.scope,
+            payment_terms: service.payment_terms,
+            warranty: service.warranty,
+          },
+          company_snapshot: companySnapshot,
+        })
+        .select()
+        .single();
+
+      if (insertError || !inserted) {
+        return res.status(500).json({ error: "Falha ao congelar o snapshot do contrato." });
+      }
+      snapshot = inserted;
+    } else {
+      if (!contract.product_id) {
+        return res.status(400).json({ error: "Contrato de sistema sem product_id." });
+      }
+      const { data: product, error: productError } = await admin
+        .from("products")
+        .select("*")
+        .eq("id", contract.product_id)
+        .single();
+      if (productError || !product) {
+        return res.status(404).json({ error: "Produto do contrato não encontrado." });
+      }
+
+      const { data: inserted, error: insertError } = await admin
+        .from("contract_snapshots")
+        .insert({
+          contract_id,
+          product_snapshot: {
+            slug: product.slug,
+            name: product.name,
+            commercial_name: product.commercial_name,
+            description: product.description,
+            default_version: product.default_version,
+            scope: product.scope,
+            license: product.license,
+            warranty: product.warranty,
+            tech_docs: product.tech_docs,
+            backup_policy: product.backup_policy,
+          },
+          service_snapshot: null,
+          company_snapshot: companySnapshot,
+        })
+        .select()
+        .single();
+
+      if (insertError || !inserted) {
+        return res.status(500).json({ error: "Falha ao congelar o snapshot do contrato." });
+      }
+      snapshot = inserted;
     }
-    snapshot = inserted;
   }
 
-  const ctx = buildDocumentContext({ contract, client, snapshot });
-  const html = renderDocumentHtml(document_type, ctx);
+  let html: string;
+  try {
+    if (isServiceContract) {
+      const ctx = buildServiceDocumentContext({ contract, client, snapshot });
+      html = renderServiceContractHtml(ctx, ctx.service.slug);
+    } else {
+      const ctx = buildDocumentContext({ contract, client, snapshot });
+      // Seguro: o check de documentIsForSistema acima já garante que document_type aqui nunca é "contrato_servico".
+      html = renderDocumentHtml(document_type as Exclude<DocumentType, "contrato_servico">, ctx);
+    }
+  } catch (err) {
+    return res.status(500).json({ error: `Falha ao montar o documento: ${(err as Error).message}` });
+  }
 
   let pdfBuffer: Buffer;
   try {

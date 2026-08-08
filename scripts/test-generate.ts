@@ -29,6 +29,10 @@ async function main() {
   const { data: client, error: clientError } = await admin.from("clients").select("*").eq("id", contract.client_id).single();
   if (clientError || !client) throw new Error(`Cliente não encontrado: ${clientError?.message}`);
 
+  if (contract.contract_kind !== "sistema" || !contract.product_id) {
+    throw new Error("Este script de teste assume um contrato de sistema (0001/2026).");
+  }
+
   let { data: snapshot } = await admin.from("contract_snapshots").select("*").eq("contract_id", contract.id).maybeSingle();
   if (!snapshot) {
     const { data: product, error: productError } = await admin.from("products").select("*").eq("id", contract.product_id).single();
@@ -52,6 +56,7 @@ async function main() {
           tech_docs: product.tech_docs,
           backup_policy: product.backup_policy,
         },
+        service_snapshot: null,
         company_snapshot: {
           name: company.name,
           legal_name: company.legal_name,

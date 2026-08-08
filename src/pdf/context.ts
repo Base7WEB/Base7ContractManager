@@ -1,5 +1,5 @@
 import type { Database } from "../types/db.js";
-import type { ClientKind, ContractStatus } from "../types/domain.js";
+import type { ClientKind, ContractStatus, ProductSnapshot } from "../types/domain.js";
 import { addDaysISO, formatAddress, formatCurrencyBRL, formatDateBR, formatDocument } from "./format.js";
 
 type ContractRow = Database["public"]["Tables"]["contracts"]["Row"];
@@ -14,7 +14,10 @@ type SnapshotRow = Database["public"]["Tables"]["contract_snapshots"]["Row"];
  */
 export interface DocumentContext {
   company: SnapshotRow["company_snapshot"];
-  product: SnapshotRow["product_snapshot"];
+  // Não deriva de SnapshotRow["product_snapshot"] (nullable, pois o snapshot agora também
+  // acomoda contratos de serviço) — buildDocumentContext() só é chamado para contract_kind =
+  // "sistema" e garante (com throw) que o snapshot tem product_snapshot preenchido.
+  product: ProductSnapshot;
   client: {
     trade_name: string;
     legal_name: string;
@@ -54,6 +57,9 @@ export function buildDocumentContext(params: {
 }): DocumentContext {
   const { contract, client, snapshot } = params;
   const { commercial, care } = contract;
+  if (!snapshot.product_snapshot) {
+    throw new Error("Snapshot de contrato de sistema sem product_snapshot.");
+  }
   const product = snapshot.product_snapshot;
 
   const deliveryDate = commercial.delivery_date;
@@ -90,8 +96,8 @@ export function buildDocumentContext(params: {
       start_date_formatted: formatDateBR(commercial.start_date),
       delivery_date_formatted: formatDateBR(deliveryDate),
       warranty_end_date_formatted: formatDateBR(addDaysISO(deliveryDate, warrantyDays)),
-      system_version: commercial.system_version,
-      subdomain: commercial.subdomain,
+      system_version: commercial.system_version ?? "",
+      subdomain: commercial.subdomain ?? "",
       system_name: `${product.name} — ${client.trade_name}`,
     },
     care: care?.active
@@ -101,6 +107,90 @@ export function buildDocumentContext(params: {
           due_day: care.due_day,
         }
       : null,
+    generated_at_formatted: formatDateBR(new Date().toISOString().slice(0, 10)),
+  };
+}
+
+/**
+ * Contexto paralelo e independente de `DocumentContext`, usado só por contratos de serviço
+ * (contract_kind = "servico"). Não reaproveita `DocumentContext` para não arriscar regressão
+ * nos 9 templates de sistema já validados — cada mundo tem seu próprio contexto e seus próprios
+ * templates, unidos apenas em `api/documents/generate.ts` pelo branch de `contract_kind`.
+ */
+export interface ServiceDocumentContext {
+  company: SnapshotRow["company_snapshot"];
+  service: NonNullable<SnapshotRow["service_snapshot"]>;
+  client: {
+    trade_name: string;
+    legal_name: string;
+    kind: ClientKind;
+    document_formatted: string;
+    address_formatted: string;
+    contact_name: string;
+    contact_role: string | null;
+    email: string | null;
+    phone: string | null;
+  };
+  contract: {
+    number: string;
+    status: ContractStatus;
+    value_formatted: string;
+    payment_method: string;
+    start_date_formatted: string;
+    delivery_date_formatted: string;
+    warranty_end_date_formatted: string | null;
+    service_name: string;
+  };
+  generated_at_formatted: string;
+}
+
+export function buildServiceDocumentContext(params: {
+  contract: ContractRow;
+  client: ClientRow;
+  snapshot: SnapshotRow;
+}): ServiceDocumentContext {
+  const { contract, client, snapshot } = params;
+  const { commercial } = contract;
+  if (!snapshot.service_snapshot) {
+    throw new Error("Snapshot de contrato de serviço sem service_snapshot.");
+  }
+  const service = snapshot.service_snapshot;
+
+  const deliveryDate = commercial.delivery_date;
+  const warrantyDays = service.warranty.days;
+
+  return {
+    company: snapshot.company_snapshot,
+    service,
+    client: {
+      trade_name: client.trade_name,
+      legal_name: client.legal_name,
+      kind: client.kind,
+      document_formatted: formatDocument(client.document, client.kind),
+      address_formatted: formatAddress({
+        street: client.address_street,
+        number: client.address_number,
+        complement: client.address_complement,
+        neighborhood: client.address_neighborhood,
+        city: client.address_city,
+        state: client.address_state,
+        zip: client.address_zip,
+      }),
+      contact_name: client.contact_name,
+      contact_role: client.contact_role,
+      email: client.email,
+      phone: client.phone,
+    },
+    contract: {
+      number: contract.number,
+      status: contract.status,
+      value_formatted: formatCurrencyBRL(commercial.value),
+      payment_method: commercial.payment_method,
+      start_date_formatted: formatDateBR(commercial.start_date),
+      delivery_date_formatted: formatDateBR(deliveryDate),
+      warranty_end_date_formatted: warrantyDays != null ? formatDateBR(addDaysISO(deliveryDate, warrantyDays)) : null,
+      service_name: `${service.name} — ${client.trade_name}`,
+    },
     generated_at_formatted: formatDateBR(new Date().toISOString().slice(0, 10)),
   };
 }

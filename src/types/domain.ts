@@ -65,8 +65,9 @@ export interface ContractCommercial {
   term_days: number;
   start_date: string; // ISO date
   delivery_date: string; // ISO date
-  system_version: string;
-  subdomain: string;
+  // Só fazem sentido para contratos de sistema (contract_kind = "sistema").
+  system_version?: string;
+  subdomain?: string;
 }
 
 export interface ContractCare {
@@ -84,7 +85,8 @@ export type DocumentType =
   | "acessos"
   | "backup"
   | "checklist"
-  | "pacote_completo";
+  | "pacote_completo"
+  | "contrato_servico";
 
 export const DOCUMENT_TYPE_LABEL: Record<DocumentType, string> = {
   contrato: "Contrato de Desenvolvimento + Licença",
@@ -95,7 +97,13 @@ export const DOCUMENT_TYPE_LABEL: Record<DocumentType, string> = {
   backup: "Política de Backup e Continuidade",
   checklist: "Checklist de Fechamento",
   pacote_completo: "Pacote de Documentação Completo",
+  contrato_servico: "Contrato de Prestação de Serviço",
 };
+
+/** "sistema" = contrato vinculado a um produto licenciado (products); "servico" = contrato
+ * vinculado a um serviço de preço fechado (services). Mutuamente exclusivo — ver CHECK
+ * constraint `contracts_kind_matches_link_check`. */
+export type ContractKind = "sistema" | "servico";
 
 export interface CompanySnapshot {
   name: string;
@@ -124,4 +132,55 @@ export interface ProductSnapshot {
   warranty: ProductWarranty;
   tech_docs: ProductTechDocs;
   backup_policy: ProductBackupPolicy;
+}
+
+export type ServiceCategory = "site" | "landing_page" | "trafego" | "consultoria" | "automacao" | "dashboard";
+
+export const SERVICE_CATEGORY_LABEL: Record<ServiceCategory, string> = {
+  site: "Site",
+  landing_page: "Landing Page",
+  trafego: "Tráfego Pago",
+  consultoria: "Consultoria",
+  automacao: "Automação",
+  dashboard: "Dashboard",
+};
+
+export type ServicePricePeriod = "unico" | "mensal";
+
+export interface ServiceScope {
+  object_text: string;
+  deliverables: string[];
+  exclusions: string[];
+  client_responsibilities: string[];
+}
+
+export interface ServicePaymentTerms {
+  default_method: string;
+  term_days: number | null;
+  recurring: boolean;
+  renewal_text: string | null;
+}
+
+export interface ServiceWarranty {
+  days: number | null;
+  notes: string;
+}
+
+/** Congelado em contract_snapshots.service_snapshot na primeira geração de PDF de um contrato
+ * de serviço — os templates de contrato de serviço sempre leem daqui, nunca de `services` ao
+ * vivo, pelo mesmo motivo de ProductSnapshot. */
+export interface ServiceSnapshot {
+  slug: string;
+  name: string;
+  badge: string | null;
+  tagline: string;
+  category: ServiceCategory;
+  price: number;
+  price_prefix: string;
+  price_period: ServicePricePeriod;
+  delivery_text: string;
+  items: string[];
+  scope: ServiceScope;
+  payment_terms: ServicePaymentTerms;
+  warranty: ServiceWarranty;
 }

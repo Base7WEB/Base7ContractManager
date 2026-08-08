@@ -6,6 +6,7 @@ import type {
   CompanySnapshot,
   ContractCare,
   ContractCommercial,
+  ContractKind,
   ContractStatus,
   DocumentType,
   ProductBackupPolicy,
@@ -14,6 +15,12 @@ import type {
   ProductSnapshot,
   ProductTechDocs,
   ProductWarranty,
+  ServiceCategory,
+  ServicePaymentTerms,
+  ServicePricePeriod,
+  ServiceScope,
+  ServiceSnapshot,
+  ServiceWarranty,
 } from "./domain";
 
 export interface Database {
@@ -96,6 +103,8 @@ export interface Database {
           description: string | null;
           status: "active" | "inactive";
           default_version: string;
+          icon: string | null;
+          production_url: string | null;
           scope: ProductScope;
           license: ProductLicense;
           warranty: ProductWarranty;
@@ -109,12 +118,40 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["products"]["Row"]>;
         Relationships: [];
       };
+      services: {
+        Row: {
+          id: string;
+          slug: string;
+          name: string;
+          badge: string | null;
+          tagline: string;
+          category: ServiceCategory;
+          status: "active" | "inactive";
+          icon: string | null;
+          price: number;
+          price_prefix: string;
+          price_period: ServicePricePeriod;
+          delivery_text: string;
+          items: string[];
+          scope: ServiceScope;
+          payment_terms: ServicePaymentTerms;
+          warranty: ServiceWarranty;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["services"]["Row"], "id" | "created_at" | "updated_at"> &
+          Partial<Pick<Database["public"]["Tables"]["services"]["Row"], "id" | "created_at" | "updated_at">>;
+        Update: Partial<Database["public"]["Tables"]["services"]["Row"]>;
+        Relationships: [];
+      };
       contracts: {
         Row: {
           id: string;
           number: string;
           client_id: string;
-          product_id: string;
+          contract_kind: ContractKind;
+          product_id: string | null;
+          service_id: string | null;
           status: ContractStatus;
           commercial: ContractCommercial;
           care: ContractCare | null;
@@ -140,7 +177,8 @@ export interface Database {
         Row: {
           id: string;
           contract_id: string;
-          product_snapshot: ProductSnapshot;
+          product_snapshot: ProductSnapshot | null;
+          service_snapshot: ServiceSnapshot | null;
           company_snapshot: CompanySnapshot;
           created_at: string;
         };

@@ -125,8 +125,8 @@ export function docHeader(title: string, subtitle: string): string {
   </div>`;
 }
 
-export function docFooter(pageLabel: string): string {
-  return `<div class="doc-footer"><span>Base7 Web — Documentação de Sistemas</span><span>${escapeHtml(pageLabel)}</span></div>`;
+export function docFooter(pageLabel: string, leftLabel = "Base7 Web — Documentação de Sistemas"): string {
+  return `<div class="doc-footer"><span>${escapeHtml(leftLabel)}</span><span>${escapeHtml(pageLabel)}</span></div>`;
 }
 
 export function sectionTitle(text: string, spaced = false): string {

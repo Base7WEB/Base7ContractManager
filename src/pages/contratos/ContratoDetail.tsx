@@ -15,7 +15,7 @@ import { generateDocument, getSignedDownloadUrl } from "@/lib/documents";
 import { CONTRACT_STATUS_LABEL, DOCUMENT_TYPE_LABEL, type DocumentType } from "@/types/domain";
 import { formatCurrencyBRL, formatDateBR } from "@/pdf/format";
 
-const INDIVIDUAL_DOCS: DocumentType[] = [
+const INDIVIDUAL_DOCS_SISTEMA: DocumentType[] = [
   "contrato",
   "termo_entrega",
   "manual",
@@ -24,6 +24,8 @@ const INDIVIDUAL_DOCS: DocumentType[] = [
   "backup",
   "checklist",
 ];
+
+const INDIVIDUAL_DOCS_SERVICO: DocumentType[] = ["contrato_servico"];
 
 export default function ContratoDetail() {
   const { contractId } = useParams();
@@ -74,12 +76,15 @@ export default function ContratoDetail() {
 
   const commercial = contract.commercial;
   const care = contract.care;
+  const isSistema = contract.contract_kind === "sistema";
+  const subjectName = isSistema ? (contract.product?.name ?? "—") : (contract.service?.name ?? "—");
+  const individualDocs = isSistema ? INDIVIDUAL_DOCS_SISTEMA : INDIVIDUAL_DOCS_SERVICO;
 
   return (
     <>
       <PageHeader
         title={`Contrato ${contract.number}`}
-        description={`${contract.client.trade_name} — ${contract.product.name}`}
+        description={`${contract.client.trade_name} — ${subjectName}`}
         actions={
           <div className="flex items-center gap-2">
             {contract.is_demo && <DemoBadge />}
@@ -97,36 +102,42 @@ export default function ContratoDetail() {
             <CardContent className="space-y-3 text-sm">
               <Row label="Cliente" value={contract.client.trade_name} />
               <Row label="Razão social" value={contract.client.legal_name} />
-              <Row label="Sistema" value={contract.product.name} />
+              <Row label={isSistema ? "Sistema" : "Serviço"} value={subjectName} />
               <Separator />
               <Row label="Valor" value={`${formatCurrencyBRL(commercial.value)} — ${commercial.payment_method}`} />
               <Row label="Prazo" value={`${commercial.term_days} dias`} />
               <Row label="Início" value={formatDateBR(commercial.start_date)} />
               <Row label="Entrega" value={formatDateBR(commercial.delivery_date)} />
-              <Row label="Versão" value={commercial.system_version} />
-              <Row label="Domínio" value={commercial.subdomain} />
-              <Separator />
-              <Row label="BASE7 CARE" value={care ? `${formatCurrencyBRL(care.monthly_price)}/mês` : "Não contratado"} />
+              {isSistema && commercial.system_version && <Row label="Versão" value={commercial.system_version} />}
+              {isSistema && commercial.subdomain && <Row label="Domínio" value={commercial.subdomain} />}
+              {isSistema && (
+                <>
+                  <Separator />
+                  <Row label="BASE7 CARE" value={care ? `${formatCurrencyBRL(care.monthly_price)}/mês` : "Não contratado"} />
+                </>
+              )}
             </CardContent>
           </Card>
 
-          <Button className="w-full" onClick={() => handleGenerate("pacote_completo")} disabled={generating !== null}>
-            {generating === "pacote_completo" ? (
-              <Loader2 className="mr-2 size-4 animate-spin" />
-            ) : (
-              <FileText className="mr-2 size-4" />
-            )}
-            Gerar documentação completa
-          </Button>
+          {isSistema && (
+            <Button className="w-full" onClick={() => handleGenerate("pacote_completo")} disabled={generating !== null}>
+              {generating === "pacote_completo" ? (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              ) : (
+                <FileText className="mr-2 size-4" />
+              )}
+              Gerar documentação completa
+            </Button>
+          )}
         </div>
 
         <div className="space-y-6 lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Documentos individuais</CardTitle>
+              <CardTitle className="text-base">{isSistema ? "Documentos individuais" : "Contrato"}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {INDIVIDUAL_DOCS.map((type) => {
+              {individualDocs.map((type) => {
                 const doc = documents?.find((d) => d.document_type === type);
                 const latest = doc?.versions[0];
                 return (

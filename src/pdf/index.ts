@@ -1,4 +1,4 @@
-import type { DocumentContext } from "./context.js";
+import type { DocumentContext, ServiceDocumentContext } from "./context.js";
 import type { DocumentType } from "../types/domain.js";
 import { htmlDocument } from "./layout.js";
 import { coverTemplate } from "./templates/cover.js";
@@ -10,8 +10,14 @@ import { docTecnicaTemplate } from "./templates/docTecnica.js";
 import { acessosTemplate } from "./templates/acessos.js";
 import { backupTemplate } from "./templates/backup.js";
 import { checklistTemplate } from "./templates/checklist.js";
+import { SERVICE_CONTRACT_TEMPLATES } from "./templates/servicos/index.js";
+import { renderServiceContractBody } from "./templates/servicos/_shared.js";
 
-export { buildDocumentContext, type DocumentContext } from "./context.js";
+export { buildDocumentContext, buildServiceDocumentContext, type DocumentContext, type ServiceDocumentContext } from "./context.js";
+
+/** DocumentType usado pelo mundo "sistema" (pacote de até 10 páginas) — "contrato_servico" é
+ * tratado exclusivamente por renderServiceContractHtml, nunca por este pipeline. */
+type SistemaDocumentType = Exclude<DocumentType, "contrato_servico">;
 
 /**
  * Pacote de documentação completo: capa + visão geral + os 6 documentos + checklist,
@@ -35,7 +41,7 @@ export function renderPackageHtml(ctx: DocumentContext): string {
 }
 
 /** Gera um documento individual (numeração de página local, não a do pacote completo). */
-export function renderSingleDocumentHtml(type: Exclude<DocumentType, "pacote_completo">, ctx: DocumentContext): string {
+export function renderSingleDocumentHtml(type: Exclude<SistemaDocumentType, "pacote_completo">, ctx: DocumentContext): string {
   let pages: string;
   let title: string;
 
@@ -77,7 +83,27 @@ export function renderSingleDocumentHtml(type: Exclude<DocumentType, "pacote_com
   return htmlDocument(pages, `BASE7 Web — ${title} — ${ctx.client.trade_name}`);
 }
 
-export function renderDocumentHtml(type: DocumentType, ctx: DocumentContext): string {
+export function renderDocumentHtml(type: SistemaDocumentType, ctx: DocumentContext): string {
   if (type === "pacote_completo") return renderPackageHtml(ctx);
   return renderSingleDocumentHtml(type, ctx);
+}
+
+/**
+ * Contrato de serviço (contract_kind = "servico"), único documento (não pacote de 10 páginas —
+ * decisão do usuário). Despacha pelo slug do serviço para um dos 9 templates individuais; um
+ * slug fora do catálogo atual (serviço cadastrado manualmente sem template dedicado) cai num
+ * corpo genérico que usa os mesmos dados do snapshot, para nunca travar a geração do PDF.
+ */
+export function renderServiceContractHtml(ctx: ServiceDocumentContext, serviceSlug: string): string {
+  const template = SERVICE_CONTRACT_TEMPLATES[serviceSlug];
+  const html = template
+    ? template(ctx, 1, 2)
+    : renderServiceContractBody({
+        ctx,
+        current: 1,
+        total: 2,
+        documentTitle: `Contrato de Prestação de Serviço — ${ctx.service.name}`,
+        objectParagraph: ctx.service.scope.object_text || `Prestação do serviço ${ctx.service.name} para ${ctx.client.trade_name}.`,
+      });
+  return htmlDocument(html, `BASE7 Web — Contrato de Prestação de Serviço — ${ctx.client.trade_name}`);
 }

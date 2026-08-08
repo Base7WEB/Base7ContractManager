@@ -1,1 +1,1 @@
-{"root":["./vite.config.ts","./scripts/render-preview.ts","./scripts/seed.ts","./scripts/test-generate.ts","./api/documents/generate.ts"],"version":"5.9.3"}
+{"root":["./vite.config.ts","./scripts/render-preview.ts","./scripts/render-service-previews.ts","./scripts/seed.ts","./scripts/test-generate.ts","./scripts/data/servicecatalog.ts","./api/documents/generate.ts"],"version":"5.9.3"}

@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import type { Database } from "@/types/db";
 
 export type ProductRow = Database["public"]["Tables"]["products"]["Row"];
+export type ProductInsert = Database["public"]["Tables"]["products"]["Insert"];
 export type ProductUpdate = Database["public"]["Tables"]["products"]["Update"];
 
 const PRODUCTS_KEY = ["products"] as const;
@@ -38,6 +39,20 @@ export function useProductQuery(id: string | undefined) {
       return data;
     },
     enabled: Boolean(id),
+  });
+}
+
+export function useCreateProductMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: ProductInsert) => {
+      const { data, error } = await supabase.from("products").insert(input).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PRODUCTS_KEY });
+    },
   });
 }
 

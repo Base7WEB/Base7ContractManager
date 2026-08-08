@@ -11,8 +11,11 @@ import NotFound from "@/pages/NotFound";
 import ClientesList from "@/pages/clientes/ClientesList";
 import ClienteForm from "@/pages/clientes/ClienteForm";
 import ProdutosSistemas from "@/pages/produtos/ProdutosSistemas";
+import ProdutoNovo from "@/pages/produtos/ProdutoNovo";
 import ProdutoDetail from "@/pages/produtos/ProdutoDetail";
 import Base7Care from "@/pages/produtos/Base7Care";
+import ServicosList from "@/pages/servicos/ServicosList";
+import ServicoForm from "@/pages/servicos/ServicoForm";
 import ContratosList from "@/pages/contratos/ContratosList";
 import ContratoWizard from "@/pages/contratos/ContratoWizard";
 import ContratoDetail from "@/pages/contratos/ContratoDetail";
@@ -46,8 +49,13 @@ function App() {
                 <Route path="clientes/:clientId" element={<ClienteForm />} />
 
                 <Route path="produtos/sistemas" element={<ProdutosSistemas />} />
+                <Route path="produtos/sistemas/novo" element={<ProdutoNovo />} />
                 <Route path="produtos/sistemas/:productId" element={<ProdutoDetail />} />
                 <Route path="produtos/base7-care" element={<Base7Care />} />
+
+                <Route path="servicos" element={<ServicosList />} />
+                <Route path="servicos/novo" element={<ServicoForm />} />
+                <Route path="servicos/:serviceId" element={<ServicoForm />} />
 
                 <Route path="contratos" element={<ContratosList />} />
                 <Route path="contratos/novo" element={<ContratoWizard />} />

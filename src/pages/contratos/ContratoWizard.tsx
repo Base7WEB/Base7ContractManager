@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, Check, FileText, Heart, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Boxes, Briefcase, Check, FileText, Heart, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,15 +10,17 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
 import { ClientPicker } from "@/components/clients/ClientPicker";
 import { ProductPicker } from "@/components/products/ProductPicker";
+import { ServicePicker } from "@/components/services/ServicePicker";
 import type { ClientRow } from "@/hooks/useClients";
 import type { ProductRow } from "@/hooks/useProducts";
+import type { ServiceRow } from "@/hooks/useServices";
 import { useCreateContractMutation } from "@/hooks/useContracts";
 import { useCareSettingsQuery } from "@/hooks/useCareSettings";
 import { generateDocument } from "@/lib/documents";
 import { slugify, cn } from "@/lib/utils";
-import type { ProductScope } from "@/types/domain";
+import type { ContractKind, ProductScope } from "@/types/domain";
 
-const STEPS = ["Cliente", "Sistema", "Comercial", "Revisão"] as const;
+const STEPS = ["Cliente", "Tipo", "Sistema/Serviço", "Comercial", "Revisão"] as const;
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -53,7 +55,9 @@ export default function ContratoWizard() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [client, setClient] = useState<ClientRow | null>(null);
+  const [contractKind, setContractKind] = useState<ContractKind | null>(null);
   const [product, setProduct] = useState<ProductRow | null>(null);
+  const [service, setService] = useState<ServiceRow | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const { data: careSettings } = useCareSettingsQuery();
@@ -101,6 +105,12 @@ export default function ContratoWizard() {
     setClient(selected);
   }
 
+  function handleSelectKind(kind: ContractKind) {
+    setContractKind(kind);
+    setProduct(null);
+    setService(null);
+  }
+
   function handleSelectProduct(selected: ProductRow) {
     setProduct(selected);
     const scope = selected.scope as ProductScope;
@@ -113,21 +123,47 @@ export default function ContratoWizard() {
     }));
   }
 
+  function handleSelectService(selected: ServiceRow) {
+    setService(selected);
+    setCommercial((prev) => {
+      const termDays = selected.payment_terms.term_days ?? (Number(prev.term_days) || 0);
+      const nextStart = prev.start_date || todayISO();
+      return {
+        ...prev,
+        value: prev.value || String(selected.price),
+        payment_method: selected.payment_terms.default_method || prev.payment_method,
+        term_days: String(termDays),
+        start_date: nextStart,
+        delivery_date: addDaysISO(nextStart, termDays),
+      };
+    });
+  }
+
   function goToStep(next: number) {
     if (next === 2 && !client) {
       toast.error("Selecione um cliente para continuar.");
       return;
     }
-    if (next === 3 && !product) {
-      toast.error("Selecione um sistema para continuar.");
+    if (next === 3 && !contractKind) {
+      toast.error("Escolha o tipo de contrato para continuar.");
       return;
     }
     if (next === 4) {
+      if (contractKind === "sistema" && !product) {
+        toast.error("Selecione um sistema para continuar.");
+        return;
+      }
+      if (contractKind === "servico" && !service) {
+        toast.error("Selecione um serviço para continuar.");
+        return;
+      }
+    }
+    if (next === 5) {
       if (!commercial.value || Number(commercial.value) <= 0) {
         toast.error("Informe o valor do contrato.");
         return;
       }
-      if (care.active && careSettings && !care.monthly_price) {
+      if (contractKind === "sistema" && care.active && careSettings && !care.monthly_price) {
         setCare((prev) => ({
           ...prev,
           monthly_price: prev.monthly_price || careSettings.monthly_price.toFixed(2),
@@ -139,35 +175,50 @@ export default function ContratoWizard() {
   }
 
   async function handleGenerate() {
-    if (!client || !product) return;
+    if (!client || !contractKind) return;
+    if (contractKind === "sistema" && !product) return;
+    if (contractKind === "servico" && !service) return;
     setSubmitting(true);
     try {
       const contract = await createContract.mutateAsync({
         client_id: client.id,
-        product_id: product.id,
+        contract_kind: contractKind,
+        product_id: contractKind === "sistema" ? product!.id : null,
+        service_id: contractKind === "servico" ? service!.id : null,
         status: "rascunho",
         is_demo: false,
-        commercial: {
-          value: Number(commercial.value),
-          payment_method: commercial.payment_method,
-          term_days: Number(commercial.term_days) || 0,
-          start_date: commercial.start_date,
-          delivery_date: commercial.delivery_date,
-          system_version: commercial.system_version,
-          subdomain: commercial.subdomain,
-        },
-        care: care.active
-          ? {
-              active: true,
-              monthly_price: Number(care.monthly_price) || careSettings?.monthly_price || 0,
-              start_date: care.start_date || commercial.delivery_date,
-              due_day: Number(care.due_day) || 10,
-            }
-          : null,
+        commercial:
+          contractKind === "sistema"
+            ? {
+                value: Number(commercial.value),
+                payment_method: commercial.payment_method,
+                term_days: Number(commercial.term_days) || 0,
+                start_date: commercial.start_date,
+                delivery_date: commercial.delivery_date,
+                system_version: commercial.system_version,
+                subdomain: commercial.subdomain,
+              }
+            : {
+                value: Number(commercial.value),
+                payment_method: commercial.payment_method,
+                term_days: Number(commercial.term_days) || 0,
+                start_date: commercial.start_date,
+                delivery_date: commercial.delivery_date,
+              },
+        care:
+          contractKind === "sistema" && care.active
+            ? {
+                active: true,
+                monthly_price: Number(care.monthly_price) || careSettings?.monthly_price || 0,
+                start_date: care.start_date || commercial.delivery_date,
+                due_day: Number(care.due_day) || 10,
+              }
+            : null,
       });
 
+      const documentType = contractKind === "sistema" ? "pacote_completo" : "contrato_servico";
       try {
-        await generateDocument(contract.id, "pacote_completo");
+        await generateDocument(contract.id, documentType);
         toast.success("Contrato criado e documentação gerada.");
       } catch (genErr) {
         toast.error(
@@ -185,7 +236,7 @@ export default function ContratoWizard() {
 
   return (
     <>
-      <PageHeader title="Novo contrato" description="Cliente → Sistema → Comercial → Revisão." />
+      <PageHeader title="Novo contrato" description="Cliente → Tipo → Sistema/Serviço → Comercial → Revisão." />
 
       <div className="mx-auto max-w-3xl p-6 md:p-8">
         <ol className="mb-8 flex items-center gap-2">
@@ -228,7 +279,46 @@ export default function ContratoWizard() {
 
         {step === 2 && (
           <div className="space-y-6">
-            <ProductPicker value={product} onChange={handleSelectProduct} />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Card
+                role="button"
+                tabIndex={0}
+                onClick={() => handleSelectKind("sistema")}
+                onKeyDown={(e) => e.key === "Enter" && handleSelectKind("sistema")}
+                className={cn(
+                  "cursor-pointer transition-colors hover:border-primary/40",
+                  contractKind === "sistema" && "border-primary ring-1 ring-primary",
+                )}
+              >
+                <CardContent className="flex flex-col items-start gap-2 pt-6">
+                  <Boxes className="size-6 text-primary" />
+                  <p className="text-base font-semibold text-foreground">Sistema</p>
+                  <p className="text-sm text-muted-foreground">
+                    Produto licenciado (software), com licença de uso, garantia técnica e opção de BASE7 CARE. Gera o
+                    pacote completo de documentação.
+                  </p>
+                </CardContent>
+              </Card>
+              <Card
+                role="button"
+                tabIndex={0}
+                onClick={() => handleSelectKind("servico")}
+                onKeyDown={(e) => e.key === "Enter" && handleSelectKind("servico")}
+                className={cn(
+                  "cursor-pointer transition-colors hover:border-primary/40",
+                  contractKind === "servico" && "border-primary ring-1 ring-primary",
+                )}
+              >
+                <CardContent className="flex flex-col items-start gap-2 pt-6">
+                  <Briefcase className="size-6 text-primary" />
+                  <p className="text-base font-semibold text-foreground">Serviço</p>
+                  <p className="text-sm text-muted-foreground">
+                    Pacote de preço fechado (tráfego pago, landing page, consultoria, automação etc.). Gera um
+                    contrato de prestação de serviço enxuto.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
             <div className="flex justify-between">
               <Button variant="outline" onClick={() => setStep(1)}>
                 <ArrowLeft className="mr-2 size-4" />
@@ -244,9 +334,29 @@ export default function ContratoWizard() {
 
         {step === 3 && (
           <div className="space-y-6">
+            {contractKind === "sistema" ? (
+              <ProductPicker value={product} onChange={handleSelectProduct} />
+            ) : (
+              <ServicePicker value={service} onChange={handleSelectService} />
+            )}
+            <div className="flex justify-between">
+              <Button variant="outline" onClick={() => setStep(2)}>
+                <ArrowLeft className="mr-2 size-4" />
+                Voltar
+              </Button>
+              <Button onClick={() => goToStep(4)}>
+                Continuar
+                <ArrowRight className="ml-2 size-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === 4 && (
+          <div className="space-y-6">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label>Valor do projeto (R$)</Label>
+                <Label>Valor do {contractKind === "sistema" ? "projeto" : "serviço"} (R$)</Label>
                 <Input
                   inputMode="decimal"
                   value={commercial.value}
@@ -269,13 +379,15 @@ export default function ContratoWizard() {
                   onChange={(e) => updateCommercial({ term_days: e.target.value })}
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label>Versão do sistema</Label>
-                <Input
-                  value={commercial.system_version}
-                  onChange={(e) => updateCommercial({ system_version: e.target.value })}
-                />
-              </div>
+              {contractKind === "sistema" && (
+                <div className="space-y-1.5">
+                  <Label>Versão do sistema</Label>
+                  <Input
+                    value={commercial.system_version}
+                    onChange={(e) => updateCommercial({ system_version: e.target.value })}
+                  />
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label>Data de início</Label>
                 <Input
@@ -292,78 +404,82 @@ export default function ContratoWizard() {
                   onChange={(e) => updateCommercial({ delivery_date: e.target.value })}
                 />
               </div>
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label>Domínio / subdomínio</Label>
-                <Input
-                  value={commercial.subdomain}
-                  onChange={(e) => updateCommercial({ subdomain: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <Card>
-              <CardContent className="space-y-4 pt-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Heart className="size-4 text-primary" />
-                    <div>
-                      <p className="text-sm font-medium text-foreground">BASE7 CARE</p>
-                      <p className="text-xs text-muted-foreground">
-                        {careSettings ? `R$ ${careSettings.monthly_price.toFixed(2)}/mês` : "Carregando..."}
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={care.active}
-                    onCheckedChange={(checked) =>
-                      setCare((prev) => ({
-                        ...prev,
-                        active: checked,
-                        monthly_price: prev.monthly_price || careSettings?.monthly_price.toFixed(2) || "",
-                        start_date: prev.start_date || commercial.delivery_date,
-                      }))
-                    }
+              {contractKind === "sistema" && (
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label>Domínio / subdomínio</Label>
+                  <Input
+                    value={commercial.subdomain}
+                    onChange={(e) => updateCommercial({ subdomain: e.target.value })}
                   />
                 </div>
-                {care.active && (
-                  <div className="grid grid-cols-1 gap-4 border-t border-border pt-4 sm:grid-cols-3">
-                    <div className="space-y-1.5">
-                      <Label>Valor mensal (R$)</Label>
-                      <Input
-                        inputMode="decimal"
-                        value={care.monthly_price}
-                        onChange={(e) => setCare((prev) => ({ ...prev, monthly_price: e.target.value }))}
-                      />
+              )}
+            </div>
+
+            {contractKind === "sistema" && (
+              <Card>
+                <CardContent className="space-y-4 pt-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Heart className="size-4 text-primary" />
+                      <div>
+                        <p className="text-sm font-medium text-foreground">BASE7 CARE</p>
+                        <p className="text-xs text-muted-foreground">
+                          {careSettings ? `R$ ${careSettings.monthly_price.toFixed(2)}/mês` : "Carregando..."}
+                        </p>
+                      </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <Label>Início do CARE</Label>
-                      <Input
-                        type="date"
-                        value={care.start_date}
-                        onChange={(e) => setCare((prev) => ({ ...prev, start_date: e.target.value }))}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Dia de vencimento</Label>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={28}
-                        value={care.due_day}
-                        onChange={(e) => setCare((prev) => ({ ...prev, due_day: e.target.value }))}
-                      />
-                    </div>
+                    <Switch
+                      checked={care.active}
+                      onCheckedChange={(checked) =>
+                        setCare((prev) => ({
+                          ...prev,
+                          active: checked,
+                          monthly_price: prev.monthly_price || careSettings?.monthly_price.toFixed(2) || "",
+                          start_date: prev.start_date || commercial.delivery_date,
+                        }))
+                      }
+                    />
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                  {care.active && (
+                    <div className="grid grid-cols-1 gap-4 border-t border-border pt-4 sm:grid-cols-3">
+                      <div className="space-y-1.5">
+                        <Label>Valor mensal (R$)</Label>
+                        <Input
+                          inputMode="decimal"
+                          value={care.monthly_price}
+                          onChange={(e) => setCare((prev) => ({ ...prev, monthly_price: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Início do CARE</Label>
+                        <Input
+                          type="date"
+                          value={care.start_date}
+                          onChange={(e) => setCare((prev) => ({ ...prev, start_date: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Dia de vencimento</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={28}
+                          value={care.due_day}
+                          onChange={(e) => setCare((prev) => ({ ...prev, due_day: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setStep(2)}>
+              <Button variant="outline" onClick={() => setStep(3)}>
                 <ArrowLeft className="mr-2 size-4" />
                 Voltar
               </Button>
-              <Button onClick={() => goToStep(4)}>
+              <Button onClick={() => goToStep(5)}>
                 Revisar
                 <ArrowRight className="ml-2 size-4" />
               </Button>
@@ -371,12 +487,13 @@ export default function ContratoWizard() {
           </div>
         )}
 
-        {step === 4 && client && product && (
+        {step === 5 && client && contractKind && (
           <div className="space-y-6">
             <Card>
               <CardContent className="space-y-5 pt-6">
                 <SummaryRow label="Cliente" value={`${client.trade_name} (${client.legal_name})`} />
-                <SummaryRow label="Sistema" value={product.name} />
+                <SummaryRow label="Tipo" value={contractKind === "sistema" ? "Sistema" : "Serviço"} />
+                <SummaryRow label={contractKind === "sistema" ? "Sistema" : "Serviço"} value={contractKind === "sistema" ? (product?.name ?? "—") : (service?.name ?? "—")} />
                 <SummaryRow
                   label="Valor"
                   value={`${Number(commercial.value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} — ${commercial.payment_method}`}
@@ -386,20 +503,22 @@ export default function ContratoWizard() {
                   label="Datas"
                   value={`Início ${formatBR(commercial.start_date)} · Entrega ${formatBR(commercial.delivery_date)}`}
                 />
-                <SummaryRow label="Domínio" value={commercial.subdomain} />
-                <SummaryRow
-                  label="BASE7 CARE"
-                  value={
-                    care.active
-                      ? `R$ ${Number(care.monthly_price || 0).toFixed(2)}/mês — vencimento dia ${care.due_day}`
-                      : "Não contratado"
-                  }
-                />
+                {contractKind === "sistema" && <SummaryRow label="Domínio" value={commercial.subdomain} />}
+                {contractKind === "sistema" && (
+                  <SummaryRow
+                    label="BASE7 CARE"
+                    value={
+                      care.active
+                        ? `R$ ${Number(care.monthly_price || 0).toFixed(2)}/mês — vencimento dia ${care.due_day}`
+                        : "Não contratado"
+                    }
+                  />
+                )}
               </CardContent>
             </Card>
 
             <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setStep(3)} disabled={submitting}>
+              <Button variant="outline" onClick={() => setStep(4)} disabled={submitting}>
                 <ArrowLeft className="mr-2 size-4" />
                 Voltar e editar
               </Button>
