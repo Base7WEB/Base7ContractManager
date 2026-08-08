@@ -12,6 +12,7 @@ import { backupTemplate } from "./templates/backup.js";
 import { checklistTemplate } from "./templates/checklist.js";
 import { SERVICE_CONTRACT_TEMPLATES } from "./templates/servicos/index.js";
 import { renderServiceContractBody } from "./templates/servicos/_shared.js";
+import { coverServicoTemplate } from "./templates/servicos/capa.js";
 
 export { buildDocumentContext, buildServiceDocumentContext, type DocumentContext, type ServiceDocumentContext } from "./context.js";
 
@@ -89,21 +90,24 @@ export function renderDocumentHtml(type: SistemaDocumentType, ctx: DocumentConte
 }
 
 /**
- * Contrato de serviço (contract_kind = "servico"), único documento (não pacote de 10 páginas —
- * decisão do usuário). Despacha pelo slug do serviço para um dos 9 templates individuais; um
- * slug fora do catálogo atual (serviço cadastrado manualmente sem template dedicado) cai num
- * corpo genérico que usa os mesmos dados do snapshot, para nunca travar a geração do PDF.
+ * Contrato de serviço (contract_kind = "servico"): capa + 2 páginas de conteúdo (não o pacote de
+ * 10 páginas — decisão do usuário). A capa segue o mesmo layout/CSS da capa dos contratos de
+ * Sistema, só com os dados do serviço. Despacha pelo slug do serviço para um dos 9 templates
+ * individuais; um slug fora do catálogo atual (serviço cadastrado manualmente sem template
+ * dedicado) cai num corpo genérico que usa os mesmos dados do snapshot, para nunca travar a
+ * geração do PDF.
  */
 export function renderServiceContractHtml(ctx: ServiceDocumentContext, serviceSlug: string): string {
   const template = SERVICE_CONTRACT_TEMPLATES[serviceSlug];
-  const html = template
-    ? template(ctx, 1, 2)
+  const body = template
+    ? template(ctx, 2, 3)
     : renderServiceContractBody({
         ctx,
-        current: 1,
-        total: 2,
+        current: 2,
+        total: 3,
         documentTitle: `Contrato de Prestação de Serviço — ${ctx.service.name}`,
         objectParagraph: ctx.service.scope.object_text || `Prestação do serviço ${ctx.service.name} para ${ctx.client.trade_name}.`,
       });
+  const html = coverServicoTemplate(ctx) + body;
   return htmlDocument(html, `BASE7 Web — Contrato de Prestação de Serviço — ${ctx.client.trade_name}`);
 }
